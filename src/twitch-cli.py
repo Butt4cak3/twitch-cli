@@ -4,32 +4,38 @@ import sys
 import requests
 import subprocess
 import json
+import argparse
 
 # The configuration file is located at $HOME/.config/twitch-cli/config.json.
 CONFIG_DIR = os.path.join(os.environ.get('HOME'), '.config/twitch-cli')
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 
 def main():
-    config = load_config()
+    parser = argparse.ArgumentParser(description='List or play Twitch streams.')
+    subparsers = parser.add_subparsers()
 
-    if len(sys.argv) > 1:
-        command = sys.argv[1]
+    parser_list = subparsers.add_parser('list', help='List followed channels')
+    parser_list.set_defaults(func=cmd_list)
+
+    parser_play = subparsers.add_parser('play', help='Play a stream')
+    parser_play.add_argument('channel', help='Channel name')
+    parser_play.set_defaults(func=cmd_play)
+
+    args = parser.parse_args()
+
+    if hasattr(args, 'func'):
+        args.func(args)
     else:
-        command = 'list'
+        cmd_list(args)
 
-    if command == 'help':
-        show_usage()
-    elif command == 'list':
-        list_followed(config)
-    elif command == 'play':
-        if len(sys.argv) < 3:
-            show_usage()
-            return
+# The cmd_* functions get called when their respective subcommand is executed
+# Example: "python3 twitch-cli list" calls "cmd_list"
 
-        channel = sys.argv[2]
-        play_stream(config, channel)
-    else:
-        play_stream(config, command)
+def cmd_list(args):
+    list_followed()
+
+def cmd_play(args):
+    play_stream(args.channel)
 
 def load_config():
     """Load the configuration file at ~/.config/twitch-cli/config.json and
@@ -54,8 +60,11 @@ def load_config():
 
     return config
 
-def play_stream(config, channel):
+def play_stream(channel, config=None):
     """Load a stream and open the player"""
+
+    if config is None:
+        config = load_config()
 
     command = 'streamlink twitch.tv/{} best '.format(channel)
     if config['oauth'] != '':
@@ -66,8 +75,11 @@ def play_stream(config, channel):
     process = subprocess.Popen(command.split(), stdout=None, stderr=None)
     output, error = process.communicate()
 
-def list_followed(config):
+def list_followed(config=None):
     """Load the list of followed streams and prompt the user to chose one."""
+
+    if config is None:
+        config = load_config()
 
     if config['oauth'] == '':
         print('You have to provide a Twitch OAuth token to list followed streams.')
@@ -105,15 +117,7 @@ def list_followed(config):
     if selection > len(response['streams']):
         return
 
-    play_stream(config, response['streams'][selection - 1]['channel']['name'])
-
-def show_usage():
-    print('Usage:')
-    print('  twitch-cli                  Same as list')
-    print('  twitch-cli list             Lists followed channels')
-    print('  twitch-cli play <channel>   Opens a stream')
-    print('  twitch-cli <channel>        Same as play')
-    print('  twitch-cli help             Prints this message')
+    play_stream(response['streams'][selection - 1]['channel']['name'], config)
 
 if __name__ == '__main__':
     main()
