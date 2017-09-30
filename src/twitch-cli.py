@@ -5,6 +5,7 @@ import requests
 import subprocess
 import json
 
+# The configuration file is located at $HOME/.config/twitch-cli/config.json.
 CONFIG_DIR = os.path.join(os.environ.get('HOME'), '.config/twitch-cli')
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 
@@ -31,6 +32,9 @@ def main():
         play_stream(config, command)
 
 def load_config():
+    """Load the configuration file at ~/.config/twitch-cli/config.json and
+    return a dict with configuration options."""
+
     if not os.path.isdir(CONFIG_DIR):
         os.makedirs(CONFIG_DIR)
 
@@ -51,6 +55,8 @@ def load_config():
     return config
 
 def play_stream(config, channel):
+    """Load a stream and open the player"""
+
     command = 'streamlink twitch.tv/{} best '.format(channel)
     if config['oauth'] != '':
         command += ' --twitch-oauth-token {}'.format(config['oauth'])
@@ -61,6 +67,8 @@ def play_stream(config, channel):
     output, error = process.communicate()
 
 def list_followed(config):
+    """Load the list of followed streams and prompt the user to chose one."""
+
     if config['oauth'] == '':
         print('You have to provide a Twitch OAuth token to list followed streams.')
         print('Look at the configuration file at {}'.format(CONFIG_FILE))
