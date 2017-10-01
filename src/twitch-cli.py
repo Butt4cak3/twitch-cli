@@ -159,9 +159,9 @@ def authenticate():
         'client_id': TWITCH_CLIENT_ID,
         'redirect_uri': 'https://butt4cak3.github.io/twitch-cli/oauth.html',
         'response_type': 'token',
-        'scope': 'openid'
+        'scope': ''
     }
-    url = 'https://api.twitch.tv/kraken/oauth2/authorize?{}'.format(urlencode(query))
+    url = 'https://api.twitch.tv/kraken/oauth2/authorize/?{}'.format(urlencode(query))
 
     try:
         if not webbrowser.open_new_tab(url):
