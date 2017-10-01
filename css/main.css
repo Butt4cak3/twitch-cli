@@ -1,0 +1,15 @@
+body {
+	font-size: 100%;
+	font-family: sans-serif;
+}
+
+.content-wrapper {
+	max-width: 600px;
+	margin: 0 auto;
+}
+
+.oauth-output {
+	border: 1px solid #DDDDDD;
+	padding: 10px;
+	font-family: monospace;
+}
