@@ -115,7 +115,7 @@ def list_followed(config=None):
 
     url = 'https://api.twitch.tv/kraken/streams/followed'
     headers = {
-        'Accept': 'application/vnd.twitchtv.v3+json',
+        'Accept': 'application/vnd.twitchtv.v5+json',
         'Authorization': 'OAuth {}'.format(config['oauth'])
     }
     request = requests.get(url, headers=headers)
