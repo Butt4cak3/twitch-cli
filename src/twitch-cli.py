@@ -103,16 +103,15 @@ def list_followed(config=None):
     print('Streams online now:')
     print('')
 
+    ind_len = len(str(len(response['streams'])))
+    format = ('{0: >' + str(ind_len + 2) + 's} {1[channel][display_name]}: '
+              '{1[channel][status]}\n' +
+              (' ' * (ind_len + 3)) + '{1[channel][name]} playing '
+              '{1[channel][game]} for {1[viewers]} viewers')
+
     i = 1
     for stream in response['streams']:
-        print('[{}] {}: {}'
-            .format(i, stream['channel']['display_name'],
-                    stream['channel']['status']))
-
-        print('    {} playing {} for {} viewers'
-            .format(stream['channel']['name'], stream['game'],
-                    stream['viewers']))
-
+        print(format.format('[' + str(i) + ']', stream))
         print('')
         i += 1
 
