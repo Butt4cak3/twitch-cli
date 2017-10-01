@@ -8,8 +8,15 @@ import argparse
 from urllib.parse import urlencode
 import webbrowser
 
+def get_config_dir():
+    if os.name == 'nt':
+        return os.path.join(os.environ['APPDATA'], 'twitch-cli')
+    elif os.name == 'posix':
+        home = os.environ.get('XDG_CONFIG_HOME', '~/.config')
+        return os.path.expanduser(os.path.join(home, 'twitch-cli'))
+
 # The configuration file is located at $HOME/.config/twitch-cli/config.json.
-CONFIG_DIR = os.path.join(os.environ.get('HOME'), '.config/twitch-cli')
+CONFIG_DIR = get_config_dir()
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 
 TWITCH_CLIENT_ID = 'e0fm2z7ufk73k2jnkm21y0gp1h9q2o'
