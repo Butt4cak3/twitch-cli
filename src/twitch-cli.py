@@ -76,7 +76,6 @@ def load_config():
         config = json.load(f)
 
     config.setdefault('oauth', '')
-    config.setdefault('player', '')
 
     save_config(config)
 
@@ -93,10 +92,6 @@ def play_stream(channel, config=None):
         config = load_config()
 
     command = 'streamlink twitch.tv/{} best '.format(channel)
-    if config['oauth'] != '':
-        command += ' --twitch-oauth-token {}'.format(config['oauth'])
-    if config['player'] != '':
-        command += ' --player {}'.format(config['player'])
 
     process = subprocess.Popen(command.split(), stdout=None, stderr=None)
     output, error = process.communicate()
