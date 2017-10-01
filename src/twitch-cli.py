@@ -16,11 +16,6 @@ TWITCH_CLIENT_ID = 'e0fm2z7ufk73k2jnkm21y0gp1h9q2o'
 
 def main():
     parser = argparse.ArgumentParser(description='List or play Twitch streams.')
-    parser.add_argument('--oauth-token',
-                        help='Save a Twitch oauth token to the config file')
-    parser.add_argument('--player',
-                        help='Save a player to the config file')
-
     subparsers = parser.add_subparsers(metavar='COMMAND')
 
     parser_list = subparsers.add_parser('list', help='List followed channels')
@@ -34,19 +29,6 @@ def main():
     parser_auth.set_defaults(func=cmd_auth)
 
     args = parser.parse_args()
-
-    config = load_config()
-
-    if args.oauth_token is not None:
-        oauth = args.oauth_token
-        if oauth[0:6] == 'oauth:':
-            oauth = oauth[6:]
-        config['oauth'] = oauth
-
-    if args.player is not None:
-        config['player'] = args.player
-
-    save_config(config)
 
     if hasattr(args, 'func'):
         args.func(args)
