@@ -69,10 +69,13 @@ def cmd_auth(args):
         print('You are already authenticated.')
         return
 
-    config['oauth'] = authenticate()
-    save_config(config)
+    token = authenticate()
 
-    print('Authentication complete.')
+    if token != '':
+        save_config(config)
+        print('Authentication complete.')
+    else:
+        print('Authentication cancelled.')
 
 def load_config():
     """Load the configuration file at ~/.config/twitch-cli/config.json and
@@ -184,7 +187,7 @@ def authenticate():
         return
 
     token = input('OAuth token: ')
-    return token
+    return token.strip()
 
 if __name__ == '__main__':
     main()
