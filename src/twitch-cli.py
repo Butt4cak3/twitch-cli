@@ -82,7 +82,8 @@ def list_followed(config=None):
         config = load_config()
 
     if config['oauth'] == '':
-        print('You have to provide a Twitch OAuth token to list followed streams.')
+        print('You have to provide a Twitch OAuth token to list followed '
+              'streams.')
         print('Look at the configuration file at {}'.format(CONFIG_FILE))
         sys.exit(1)
 
@@ -95,7 +96,8 @@ def list_followed(config=None):
     response = request.json()
 
     if 'streams' not in response:
-        print('Something went wrong while trying to fetch data from the Twitch API')
+        print('Something went wrong while trying to fetch data from the '
+              'Twitch API')
         sys.exit(1)
 
     print('Streams online now:')
@@ -103,8 +105,14 @@ def list_followed(config=None):
 
     i = 1
     for stream in response['streams']:
-        print('[{}] {}: {}'.format(i, stream['channel']['display_name'], stream['channel']['status']))
-        print('    {} playing {} for {} viewers'.format(stream['channel']['name'], stream['game'], stream['viewers']))
+        print('[{}] {}: {}'
+            .format(i, stream['channel']['display_name'],
+                    stream['channel']['status']))
+
+        print('    {} playing {} for {} viewers'
+            .format(stream['channel']['name'], stream['game'],
+                    stream['viewers']))
+
         print('')
         i += 1
 
