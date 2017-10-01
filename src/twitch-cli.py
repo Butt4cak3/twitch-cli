@@ -6,10 +6,13 @@ import subprocess
 import json
 import argparse
 from urllib.parse import urlencode
+import webbrowser
 
 # The configuration file is located at $HOME/.config/twitch-cli/config.json.
 CONFIG_DIR = os.path.join(os.environ.get('HOME'), '.config/twitch-cli')
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
+
+TWITCH_CLIENT_ID = 'e0fm2z7ufk73k2jnkm21y0gp1h9q2o'
 
 def main():
     parser = argparse.ArgumentParser(description='List or play Twitch streams.')
@@ -64,10 +67,12 @@ def cmd_auth(args):
 
     if config['oauth'] != '':
         print('You are already authenticated.')
+        return
 
-    config['oauth'] = authenticate(config)
-
+    config['oauth'] = authenticate()
     save_config(config)
+
+    print('Authentication complete.')
 
 def load_config():
     """Load the configuration file at ~/.config/twitch-cli/config.json and
@@ -161,19 +166,25 @@ def list_followed(config=None):
 
     play_stream(response['streams'][selection - 1]['channel']['name'], config)
 
-def authenticate(config):
+def authenticate():
     query = {
-        'client_id' :'e0fm2z7ufk73k2jnkm21y0gp1h9q2o',
+        'client_id': TWITCH_CLIENT_ID,
         'redirect_uri': 'https://butt4cak3.github.io/twitch-cli/oauth.html',
-        'response_type': 'id_token',
+        'response_type': 'token',
         'scope': 'openid'
     }
     url = 'https://api.twitch.tv/kraken/oauth2/authorize?{}'.format(urlencode(query))
-    headers = {
-        'Accept': 'application/vnd.twitchtv.v5+json'
-    }
 
-    print(url)
+    try:
+        if not webbrowser.open_new_tab(url):
+            raise webbrowser.Error
+    except webbrowser.Error:
+        print('Couldn\'t open a browser. Open this URL in your browser to continue:')
+        print(url)
+        return
+
+    token = input('OAuth token: ')
+    return token
 
 if __name__ == '__main__':
     main()
