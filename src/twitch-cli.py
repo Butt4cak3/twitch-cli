@@ -5,6 +5,7 @@ import requests
 import subprocess
 import json
 import argparse
+from urllib.parse import urlencode
 
 # The configuration file is located at $HOME/.config/twitch-cli/config.json.
 CONFIG_DIR = os.path.join(os.environ.get('HOME'), '.config/twitch-cli')
@@ -17,7 +18,7 @@ def main():
     parser.add_argument('--player',
                         help='Save a player to the config file')
 
-    subparsers = parser.add_subparsers()
+    subparsers = parser.add_subparsers(metavar='COMMAND')
 
     parser_list = subparsers.add_parser('list', help='List followed channels')
     parser_list.set_defaults(func=cmd_list)
@@ -25,6 +26,9 @@ def main():
     parser_play = subparsers.add_parser('play', help='Play a stream')
     parser_play.add_argument('channel', help='Channel name')
     parser_play.set_defaults(func=cmd_play)
+
+    parser_auth = subparsers.add_parser('auth', help='Authenticate with Twitch')
+    parser_auth.set_defaults(func=cmd_auth)
 
     args = parser.parse_args()
 
@@ -54,6 +58,16 @@ def cmd_list(args):
 
 def cmd_play(args):
     play_stream(args.channel)
+
+def cmd_auth(args):
+    config = load_config()
+
+    if config['oauth'] != '':
+        print('You are already authenticated.')
+
+    config['oauth'] = authenticate(config)
+
+    save_config(config)
 
 def load_config():
     """Load the configuration file at ~/.config/twitch-cli/config.json and
@@ -146,6 +160,20 @@ def list_followed(config=None):
         return
 
     play_stream(response['streams'][selection - 1]['channel']['name'], config)
+
+def authenticate(config):
+    query = {
+        'client_id' :'e0fm2z7ufk73k2jnkm21y0gp1h9q2o',
+        'redirect_uri': 'https://butt4cak3.github.io/twitch-cli/oauth.html',
+        'response_type': 'id_token',
+        'scope': 'openid'
+    }
+    url = 'https://api.twitch.tv/kraken/oauth2/authorize?{}'.format(urlencode(query))
+    headers = {
+        'Accept': 'application/vnd.twitchtv.v5+json'
+    }
+
+    print(url)
 
 if __name__ == '__main__':
     main()
