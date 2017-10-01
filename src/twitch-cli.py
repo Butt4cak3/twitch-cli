@@ -54,6 +54,7 @@ def cmd_auth(args):
     token = authenticate()
 
     if token != '':
+        config['oauth'] = token
         save_config(config)
         print('Authentication complete.')
     else:
