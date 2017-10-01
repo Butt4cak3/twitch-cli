@@ -57,3 +57,8 @@ file in *$HOME/.config/twitch-cli/*. Everything you can configure will have a
 default value in the configuration file. There are no hidden options. If you
 want to reset an option to its default, delete it from the file and it will get
 reset the next time you run the program.
+
+You can also set your OAuth token and favorite video player with the
+`--oauth-token` and `--player` arguments respectively. Note that these will
+save your choice to the configuration file, so you won't have to specify them
+in the future.

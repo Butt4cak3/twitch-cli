@@ -12,6 +12,11 @@ CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 
 def main():
     parser = argparse.ArgumentParser(description='List or play Twitch streams.')
+    parser.add_argument('--oauth-token',
+                        help='Save a Twitch oauth token to the config file')
+    parser.add_argument('--player',
+                        help='Save a player to the config file')
+
     subparsers = parser.add_subparsers()
 
     parser_list = subparsers.add_parser('list', help='List followed channels')
@@ -22,6 +27,19 @@ def main():
     parser_play.set_defaults(func=cmd_play)
 
     args = parser.parse_args()
+
+    config = load_config()
+
+    if args.oauth_token is not None:
+        oauth = args.oauth_token
+        if oauth[0:6] == 'oauth:':
+            oauth = oauth[6:]
+        config['oauth'] = oauth
+
+    if args.player is not None:
+        config['player'] = args.player
+
+    save_config(config)
 
     if hasattr(args, 'func'):
         args.func(args)
@@ -55,10 +73,13 @@ def load_config():
     config.setdefault('oauth', '')
     config.setdefault('player', '')
 
-    with open(CONFIG_FILE, 'w') as f:
-        json.dump(config, f, sort_keys=True, indent=4)
+    save_config(config)
 
     return config
+
+def save_config(config):
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump(config, f, sort_keys=True, indent=4)
 
 def play_stream(channel, config=None):
     """Load a stream and open the player"""
