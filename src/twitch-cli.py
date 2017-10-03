@@ -166,8 +166,6 @@ def get_game_streams(game):
     response = request.json()
 
     if 'streams' not in response:
-        with open('twitch.json', 'w') as f:
-            json.dump(response, f, sort_keys=True, indent=4)
         return None
 
     return response['streams']
