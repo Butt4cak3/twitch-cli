@@ -64,6 +64,16 @@ def main():
     parser_play.add_argument('channel', help='Channel name')
     parser_play.set_defaults(func=cmd_play)
 
+    parser_follow = subparsers.add_parser('follow', help='Follow a channel')
+    parser_follow.add_argument('channel', help='The channel you want to follow')
+    parser_follow.set_defaults(func=cmd_follow)
+
+    parser_unfollow = subparsers.add_parser('unfollow',
+                                            help='Unfollow a channel')
+    parser_unfollow.add_argument('channel', help='The channel you don\'t want '
+                                            'to follow anymore')
+    parser_unfollow.set_defaults(func=cmd_unfollow)
+
     parser_auth = subparsers.add_parser('auth', help='Authenticate with Twitch')
     parser_auth.set_defaults(func=cmd_auth)
 
@@ -82,6 +92,12 @@ def cmd_list(args):
 
 def cmd_play(args):
     play_stream(args.channel)
+
+def cmd_follow(args):
+    follow_channel(args.channel)
+
+def cmd_unfollow(args):
+    unfollow_channel(args.channel)
 
 def cmd_auth(args):
     if config['oauth'] != '':
@@ -189,12 +205,51 @@ def print_stream_list(streams, title=None, flat=False):
         print(format.format('[' + str(i) + ']', stream))
         i += 1
 
+def follow_channel(channel):
+    own_id = get_own_channel_id()
+    channel_id = get_channel_id(channel)
+
+    if channel_id is None:
+        print('The channel "{}" does not exist'.format(channel))
+        return
+
+    url = 'users/{}/follows/channels/{}'.format(own_id, channel_id)
+    response = twitchapi_request(url, method='put')
+    print('You now follow {}'.format(channel))
+
+def unfollow_channel(channel):
+    own_id = get_own_channel_id()
+    channel_id = get_channel_id(channel)
+
+    if channel_id is None:
+        print('The channel "{}" does not exist'.format(channel))
+        return
+
+    url = 'users/{}/follows/channels/{}'.format(own_id, channel_id)
+    response = twitchapi_request(url, method='delete')
+    print('You don\'t follow {} anymore'.format(channel))
+
+def get_own_channel_id():
+    url = ''
+    response = twitchapi_request(url)
+    return response['token']['user_id']
+
+def get_channel_id(name):
+    query = { 'login': name }
+    url = 'users?{}'.format(urlencode(query))
+    response = twitchapi_request(url)
+
+    if response['_total'] == 0:
+        return None
+
+    return response['users'][0]['_id']
+
 def authenticate():
     query = {
         'client_id': TWITCH_CLIENT_ID,
         'redirect_uri': 'https://butt4cak3.github.io/twitch-cli/oauth.html',
         'response_type': 'token',
-        'scope': ''
+        'scope': 'user_follows_edit'
     }
     url = ('https://api.twitch.tv/kraken/oauth2/authorize/?{}'
            .format(urlencode(query)))
@@ -210,6 +265,28 @@ def authenticate():
 
     token = input('OAuth token: ')
     return token.strip()
+
+def twitchapi_request(url, method='get'):
+    url = 'https://api.twitch.tv/kraken/' + url
+    headers = {
+        'Accept': 'application/vnd.twitchtv.v5+json',
+        'Client-ID': TWITCH_CLIENT_ID,
+        'Authorization': 'OAuth {}'.format(config['oauth'])
+    }
+    if method == 'get':
+        request = requests.get(url, headers=headers)
+    elif method == 'put':
+        request = requests.put(url, headers=headers)
+    elif method == 'delete':
+        request = requests.delete(url, headers=headers)
+
+    try:
+        data = request.json()
+    except:
+        print(request.text)
+        return None
+
+    return data
 
 if __name__ == '__main__':
     main()
