@@ -53,7 +53,11 @@ def main():
     subparsers = parser.add_subparsers(metavar='COMMAND')
 
     parser_list = subparsers.add_parser('list', help='List followed channels')
-    parser_list.add_argument('--flat', '-f', action='store_true', help='Don\'t show detailed information or prompt')
+    parser_list.add_argument('--flat', '-f', action='store_true',
+                             help='Don\'t show detailed information or prompt')
+    parser_list.add_argument('--game', help='List streams playing a game')
+    parser_list.add_argument('--followed', action='store_true',
+                             help='List followed streams')
     parser_list.set_defaults(func=cmd_list)
 
     parser_play = subparsers.add_parser('play', help='Play a stream')
@@ -110,20 +114,17 @@ def list_streams(args):
         print('Look at the configuration file at {}'.format(CONFIG_FILE))
         sys.exit(1)
 
-    url = 'https://api.twitch.tv/kraken/streams/followed'
-    headers = {
-        'Accept': 'application/vnd.twitchtv.v5+json',
-        'Authorization': 'OAuth {}'.format(config['oauth'])
-    }
-    request = requests.get(url, headers=headers)
-    response = request.json()
+    if args.game is not None:
+        streams = get_game_streams(args.game)
+    else:
+        streams = get_followed_streams()
 
-    if 'streams' not in response:
+    if streams is None:
         print('Something went wrong while trying to fetch data from the '
               'Twitch API')
         sys.exit(1)
 
-    print_stream_list(response['streams'], title='Streams online now',
+    print_stream_list(streams, title='Streams online now',
                       flat=args.flat)
 
     if not args.flat:
@@ -135,13 +136,41 @@ def list_streams(args):
     else:
         return
 
-    if selection > len(response['streams']):
+    if selection > len(streams):
         return
 
-    play_stream(response['streams'][selection - 1]['channel']['name'], config)
+    play_stream(streams[selection - 1]['channel']['name'])
 
 def get_followed_streams():
-    pass
+    url = 'https://api.twitch.tv/kraken/streams/followed'
+    headers = {
+        'Accept': 'application/vnd.twitchtv.v5+json',
+        'Authorization': 'OAuth {}'.format(config['oauth'])
+    }
+    request = requests.get(url, headers=headers)
+    response = request.json()
+
+    if 'streams' not in response:
+        return None
+
+    return response['streams']
+
+def get_game_streams(game):
+    query = { 'game': game }
+    url = 'https://api.twitch.tv/kraken/streams/?{}'.format(urlencode(query))
+    headers = {
+        'Accept': 'application/vnd.twitchtv.v5+json',
+        'Authorization': 'OAuth {}'.format(config['oauth'])
+    }
+    request = requests.get(url, headers=headers)
+    response = request.json()
+
+    if 'streams' not in response:
+        with open('twitch.json', 'w') as f:
+            json.dump(response, f, sort_keys=True, indent=4)
+        return None
+
+    return response['streams']
 
 def print_stream_list(streams, title=None, flat=False):
     if title and not flat:
