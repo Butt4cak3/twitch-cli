@@ -198,13 +198,15 @@ def authenticate():
         'response_type': 'token',
         'scope': ''
     }
-    url = 'https://api.twitch.tv/kraken/oauth2/authorize/?{}'.format(urlencode(query))
+    url = ('https://api.twitch.tv/kraken/oauth2/authorize/?{}'
+           .format(urlencode(query)))
 
     try:
         if not webbrowser.open_new_tab(url):
             raise webbrowser.Error
     except webbrowser.Error:
-        print('Couldn\'t open a browser. Open this URL in your browser to continue:')
+        print('Couldn\'t open a browser. Open this URL in your browser to '
+              'continue:')
         print(url)
         return
 
