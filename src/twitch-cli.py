@@ -26,6 +26,7 @@ def main():
     subparsers = parser.add_subparsers(metavar='COMMAND')
 
     parser_list = subparsers.add_parser('list', help='List followed channels')
+    parser_list.add_argument('--flat', '-f', action='store_true', help='Don\'t show detailed information or prompt')
     parser_list.set_defaults(func=cmd_list)
 
     parser_play = subparsers.add_parser('play', help='Play a stream')
@@ -46,7 +47,7 @@ def main():
 # Example: "python3 twitch-cli list" calls "cmd_list"
 
 def cmd_list(args):
-    list_followed()
+    list_followed(flat=args.flat)
 
 def cmd_play(args):
     play_stream(args.channel)
@@ -103,7 +104,7 @@ def play_stream(channel, config=None):
     process = subprocess.Popen(command.split(), stdout=None, stderr=None)
     output, error = process.communicate()
 
-def list_followed(config=None):
+def list_followed(config=None, flat=False):
     """Load the list of followed streams and prompt the user to chose one."""
 
     if config is None:
@@ -128,25 +129,31 @@ def list_followed(config=None):
               'Twitch API')
         sys.exit(1)
 
-    print('Streams online now:')
-    print('')
+    if not flat:
+        print('Streams online now:')
+        print('')
 
-    ind_len = len(str(len(response['streams'])))
-    format = ('{0: >' + str(ind_len + 2) + 's} {1[channel][display_name]}: '
-              '{1[channel][status]}\n' +
-              (' ' * (ind_len + 3)) + '{1[channel][name]} playing '
-              '{1[channel][game]} for {1[viewers]} viewers')
+    if flat:
+        format = '{1[channel][name]}'
+    else:
+        ind_len = len(str(len(response['streams'])))
+        format = ('{0: >' + str(ind_len + 2) + 's} {1[channel][display_name]}: '
+                  '{1[channel][status]}\n' +
+                  (' ' * (ind_len + 3)) + '{1[channel][name]} playing '
+                  '{1[channel][game]} for {1[viewers]} viewers\n')
 
     i = 1
     for stream in response['streams']:
         print(format.format('[' + str(i) + ']', stream))
-        print('')
         i += 1
 
-    selection = input('Stream ID: ')
-    try:
-        selection = int(selection)
-    except:
+    if not flat:
+        selection = input('Stream ID: ')
+        try:
+            selection = int(selection)
+        except:
+            return
+    else:
         return
 
     if selection > len(response['streams']):
