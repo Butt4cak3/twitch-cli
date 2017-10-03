@@ -21,52 +21,9 @@ CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 
 TWITCH_CLIENT_ID = 'e0fm2z7ufk73k2jnkm21y0gp1h9q2o'
 
-def main():
-    parser = argparse.ArgumentParser(description='List or play Twitch streams.')
-    subparsers = parser.add_subparsers(metavar='COMMAND')
-
-    parser_list = subparsers.add_parser('list', help='List followed channels')
-    parser_list.add_argument('--flat', '-f', action='store_true', help='Don\'t show detailed information or prompt')
-    parser_list.set_defaults(func=cmd_list)
-
-    parser_play = subparsers.add_parser('play', help='Play a stream')
-    parser_play.add_argument('channel', help='Channel name')
-    parser_play.set_defaults(func=cmd_play)
-
-    parser_auth = subparsers.add_parser('auth', help='Authenticate with Twitch')
-    parser_auth.set_defaults(func=cmd_auth)
-
-    args = parser.parse_args()
-
-    if hasattr(args, 'func'):
-        args.func(args)
-    else:
-        cmd_list(args)
-
-# The cmd_* functions get called when their respective subcommand is executed
-# Example: "python3 twitch-cli list" calls "cmd_list"
-
-def cmd_list(args):
-    list_followed(flat=args.flat)
-
-def cmd_play(args):
-    play_stream(args.channel)
-
-def cmd_auth(args):
-    config = load_config()
-
-    if config['oauth'] != '':
-        print('You are already authenticated.')
-        return
-
-    token = authenticate()
-
-    if token != '':
-        config['oauth'] = token
-        save_config(config)
-        print('Authentication complete.')
-    else:
-        print('Authentication cancelled.')
+def save_config(config):
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump(config, f, sort_keys=True, indent=4)
 
 def load_config():
     """Load the configuration file at ~/.config/twitch-cli/config.json and
@@ -89,26 +46,63 @@ def load_config():
 
     return config
 
-def save_config(config):
-    with open(CONFIG_FILE, 'w') as f:
-        json.dump(config, f, sort_keys=True, indent=4)
+config = load_config()
 
-def play_stream(channel, config=None):
+def main():
+    parser = argparse.ArgumentParser(description='List or play Twitch streams.')
+    subparsers = parser.add_subparsers(metavar='COMMAND')
+
+    parser_list = subparsers.add_parser('list', help='List followed channels')
+    parser_list.add_argument('--flat', '-f', action='store_true', help='Don\'t show detailed information or prompt')
+    parser_list.set_defaults(func=cmd_list)
+
+    parser_play = subparsers.add_parser('play', help='Play a stream')
+    parser_play.add_argument('channel', help='Channel name')
+    parser_play.set_defaults(func=cmd_play)
+
+    parser_auth = subparsers.add_parser('auth', help='Authenticate with Twitch')
+    parser_auth.set_defaults(func=cmd_auth)
+
+    args = parser.parse_args()
+
+    if not hasattr(args, 'func'):
+        args = parser.parse_args(['list'])
+
+    args.func(args)
+
+# The cmd_* functions get called when their respective subcommand is executed
+# Example: "python3 twitch-cli list" calls "cmd_list"
+
+def cmd_list(args):
+    list_streams(args)
+
+def cmd_play(args):
+    play_stream(args.channel)
+
+def cmd_auth(args):
+    if config['oauth'] != '':
+        print('You are already authenticated.')
+        return
+
+    token = authenticate()
+
+    if token != '':
+        config['oauth'] = token
+        save_config(config)
+        print('Authentication complete.')
+    else:
+        print('Authentication cancelled.')
+
+def play_stream(channel):
     """Load a stream and open the player"""
-
-    if config is None:
-        config = load_config()
 
     command = 'streamlink twitch.tv/{} best '.format(channel)
 
     process = subprocess.Popen(command.split(), stdout=None, stderr=None)
     output, error = process.communicate()
 
-def list_followed(config=None, flat=False):
-    """Load the list of followed streams and prompt the user to chose one."""
-
-    if config is None:
-        config = load_config()
+def list_streams(args):
+    """Load the list of streams and prompt the user to chose one."""
 
     if config['oauth'] == '':
         print('You have to provide a Twitch OAuth token to list followed '
@@ -129,25 +123,10 @@ def list_followed(config=None, flat=False):
               'Twitch API')
         sys.exit(1)
 
-    if not flat:
-        print('Streams online now:')
-        print('')
+    print_stream_list(response['streams'], title='Streams online now',
+                      flat=args.flat)
 
-    if flat:
-        format = '{1[channel][name]}'
-    else:
-        ind_len = len(str(len(response['streams'])))
-        format = ('{0: >' + str(ind_len + 2) + 's} {1[channel][display_name]}: '
-                  '{1[channel][status]}\n' +
-                  (' ' * (ind_len + 3)) + '{1[channel][name]} playing '
-                  '{1[channel][game]} for {1[viewers]} viewers\n')
-
-    i = 1
-    for stream in response['streams']:
-        print(format.format('[' + str(i) + ']', stream))
-        i += 1
-
-    if not flat:
+    if not args.flat:
         selection = input('Stream ID: ')
         try:
             selection = int(selection)
@@ -160,6 +139,28 @@ def list_followed(config=None, flat=False):
         return
 
     play_stream(response['streams'][selection - 1]['channel']['name'], config)
+
+def get_followed_streams():
+    pass
+
+def print_stream_list(streams, title=None, flat=False):
+    if title and not flat:
+        print(title)
+        print('')
+
+    if flat:
+        format = '{1[channel][name]}'
+    else:
+        ind_len = len(str(len(streams)))
+        format = ('{0: >' + str(ind_len + 2) + 's} {1[channel][display_name]}: '
+                  '{1[channel][status]}\n' +
+                  (' ' * (ind_len + 3)) + '{1[channel][name]} playing '
+                  '{1[channel][game]} for {1[viewers]} viewers\n')
+
+    i = 1
+    for stream in streams:
+        print(format.format('[' + str(i) + ']', stream))
+        i += 1
 
 def authenticate():
     query = {
