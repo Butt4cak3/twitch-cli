@@ -75,6 +75,7 @@ def main():
     parser_unfollow.set_defaults(func=cmd_unfollow)
 
     parser_auth = subparsers.add_parser('auth', help='Authenticate with Twitch')
+    parser_auth.add_argument('--force', '-f', action='store_true', help='Overwrite the existing OAuth token')
     parser_auth.set_defaults(func=cmd_auth)
 
     args = parser.parse_args()
@@ -100,7 +101,7 @@ def cmd_unfollow(args):
     unfollow_channel(args.channel)
 
 def cmd_auth(args):
-    if config['oauth'] != '':
+    if (config['oauth'] != '') and (not args.force):
         print('You are already authenticated.')
         return
 
