@@ -34,6 +34,13 @@ def cmd_live(flat, game):
     """List live channels"""
     list_streams(game=game, flat=flat)
 
+@main.command('vods')
+@click.option('--flat', is_flag=True, help='Don\'t show detailed information or prompt')
+@click.argument('channel')
+def cmd_vods(channel, flat):
+    """List past streams of a channel"""
+    list_vods(channel, flat)
+
 @main.command('play')
 @click.argument('channel')
 def cmd_play(channel):
@@ -70,13 +77,15 @@ def cmd_auth(force):
     else:
         print('Authentication cancelled.')
 
+def play_url(url):
+    command = 'streamlink {} best'.format(url)
+    process = subprocess.Popen(command.split(), stdout=None, stderr=None)
+    output, error = process.communicate()
+
 def play_stream(channel):
     """Load a stream and open the player"""
 
-    command = 'streamlink twitch.tv/{} best '.format(channel)
-
-    process = subprocess.Popen(command.split(), stdout=None, stderr=None)
-    output, error = process.communicate()
+    play_url('twitch.tv/{}'.format(channel))
 
 def list_streams(game=None, flat=False):
     """Load the list of streams and prompt the user to chose one."""
@@ -148,6 +157,41 @@ def get_game_streams(game):
 
     return response['streams']
 
+def list_vods(channel, flat):
+    vods = get_channel_vods(channel)
+    print_vod_list(vods, title='{}\'s recent VODs'.format(channel))
+    if not flat:
+        selection = input('VOD ID: ')
+        try:
+            selection = int(selection)
+        except:
+            return
+
+        if selection <= len(vods):
+            play_url(vods[selection-1]['url'])
+            pass
+
+def get_channel_vods(channel):
+    config = get_config()
+    channel_id = get_channel_id(channel)
+
+    if channel_id is None:
+        print('The channel "{}" does not exist'.format(channel))
+        return
+
+    url = 'https://api.twitch.tv/kraken/channels/{}/videos?broadcast_type=archive'.format(channel_id)
+    headers = {
+        'Accept': 'application/vnd.twitchtv.v5+json',
+        'Authorization': 'OAuth {}'.format(config['oauth'])
+    }
+    request = requests.get(url, headers=headers)
+    response = request.json()
+
+    if 'videos' not in response:
+        return None
+
+    return response['videos']
+
 def print_stream_list(streams, title=None, flat=False):
     if title and not flat:
         print(title)
@@ -166,6 +210,24 @@ def print_stream_list(streams, title=None, flat=False):
     for stream in streams:
         print(format.format('[' + str(i) + ']', stream))
         i += 1
+
+def print_vod_list(vods, title=None, flat=False):
+    if title and not flat:
+        print(title)
+        print('')
+
+    if flat:
+        format = '{1[url]}'
+    else:
+        ind_len = len(str(len(vods)))
+        format = ('{0: >' + str(ind_len + 2) + 's} {1[game]}: '
+                  '{1[title]}\n' +
+                  (' ' * (ind_len + 3)) + 'Recorded: {1[created_at]}\n')
+
+        i = 1
+        for vod in vods:
+            print(format.format('[' + str(i) + ']', vod))
+            i += 1
 
 def follow_channel(channel):
     own_id = get_own_channel_id()
