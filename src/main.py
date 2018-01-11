@@ -4,7 +4,7 @@ import sys
 import requests
 import subprocess
 import json
-import argparse
+import click
 from urllib.parse import urlencode
 import webbrowser
 
@@ -48,60 +48,46 @@ def load_config():
 
 config = load_config()
 
-def main():
-    parser = argparse.ArgumentParser(description='List or play Twitch streams.')
-    subparsers = parser.add_subparsers(metavar='COMMAND')
-
-    parser_list = subparsers.add_parser('list', help='List followed channels')
-    parser_list.add_argument('--flat', '-f', action='store_true',
-                             help='Don\'t show detailed information or prompt')
-    parser_list.add_argument('--game', help='List streams playing a game')
-    parser_list.add_argument('--followed', action='store_true',
-                             help='List followed streams')
-    parser_list.set_defaults(func=cmd_list)
-
-    parser_play = subparsers.add_parser('play', help='Play a stream')
-    parser_play.add_argument('channel', help='Channel name')
-    parser_play.set_defaults(func=cmd_play)
-
-    parser_follow = subparsers.add_parser('follow', help='Follow a channel')
-    parser_follow.add_argument('channel', help='The channel you want to follow')
-    parser_follow.set_defaults(func=cmd_follow)
-
-    parser_unfollow = subparsers.add_parser('unfollow',
-                                            help='Unfollow a channel')
-    parser_unfollow.add_argument('channel', help='The channel you don\'t want '
-                                            'to follow anymore')
-    parser_unfollow.set_defaults(func=cmd_unfollow)
-
-    parser_auth = subparsers.add_parser('auth', help='Authenticate with Twitch')
-    parser_auth.add_argument('--force', '-f', action='store_true', help='Overwrite the existing OAuth token')
-    parser_auth.set_defaults(func=cmd_auth)
-
-    args = parser.parse_args()
-
-    if not hasattr(args, 'func'):
-        args = parser.parse_args(['list'])
-
-    args.func(args)
+@click.group(invoke_without_command=True)
+@click.pass_context
+def main(ctx):
+    """List or play Twitch streams"""
+    if ctx.invoked_subcommand is None:
+        cmd_live()
 
 # The cmd_* functions get called when their respective subcommand is executed
-# Example: "python3 twitch-cli list" calls "cmd_list"
+# Example: "python3 twitch-cli live" calls "cmd_live"
 
-def cmd_list(args):
-    list_streams(args)
+@main.command('live')
+@click.option('--flat', is_flag=True, help='Don\'t show detailed information or prompt')
+@click.option('--game', help='Show live streams for a specific game')
+def cmd_live(flat, game):
+    """List live channels"""
+    list_streams(game=game, flat=flat)
 
-def cmd_play(args):
-    play_stream(args.channel)
+@main.command('play')
+@click.argument('channel')
+def cmd_play(channel):
+    """Play a livestream"""
+    play_stream(channel)
 
-def cmd_follow(args):
-    follow_channel(args.channel)
+@main.command('follow')
+@click.argument('channel')
+def cmd_follow(channel):
+    """Follow a channel"""
+    follow_channel(channel)
 
-def cmd_unfollow(args):
-    unfollow_channel(args.channel)
+@main.command('unfollow')
+@click.argument('channel')
+def cmd_unfollow(channel):
+    """Unfollow a channel"""
+    unfollow_channel(channel)
 
-def cmd_auth(args):
-    if (config['oauth'] != '') and (not args.force):
+@main.command('auth')
+@click.option('--force', '-f', help='Overwrite existing OAuth token')
+def cmd_auth(force):
+    """Authenticate with Twitch"""
+    if (config['oauth'] != '') and (not force):
         print('You are already authenticated.')
         return
 
@@ -122,17 +108,17 @@ def play_stream(channel):
     process = subprocess.Popen(command.split(), stdout=None, stderr=None)
     output, error = process.communicate()
 
-def list_streams(args):
+def list_streams(game=None, flat=False):
     """Load the list of streams and prompt the user to chose one."""
 
     if config['oauth'] == '':
         print('You have to provide a Twitch OAuth token to list followed '
               'streams.')
-        print('Look at the configuration file at {}'.format(CONFIG_FILE))
+        print('Run "{} auth" to authenticate.'.format(sys.argv[0]))
         sys.exit(1)
 
-    if args.game is not None:
-        streams = get_game_streams(args.game)
+    if game is not None:
+        streams = get_game_streams(game)
     else:
         streams = get_followed_streams()
 
@@ -142,9 +128,9 @@ def list_streams(args):
         sys.exit(1)
 
     print_stream_list(streams, title='Streams online now',
-                      flat=args.flat)
+                      flat=flat)
 
-    if not args.flat:
+    if not flat:
         selection = input('Stream ID: ')
         try:
             selection = int(selection)
