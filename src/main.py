@@ -21,13 +21,16 @@ CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 
 TWITCH_CLIENT_ID = 'e0fm2z7ufk73k2jnkm21y0gp1h9q2o'
 
-def save_config(config):
+def save_config():
+    global config
     with open(CONFIG_FILE, 'w') as f:
         json.dump(config, f, sort_keys=True, indent=4)
 
 def load_config():
     """Load the configuration file at ~/.config/twitch-cli/config.json and
     return a dict with configuration options."""
+
+    global config
 
     if not os.path.isdir(CONFIG_DIR):
         os.makedirs(CONFIG_DIR)
@@ -42,16 +45,24 @@ def load_config():
 
     config.setdefault('oauth', '')
 
-    save_config(config)
+    save_config()
 
-    return config
-
-config = load_config()
+def set_config_path(path):
+    global CONFIG_DIR
+    global CONFIG_FILE
+    CONFIG_FILE = path
+    CONFIG_DIR = os.path.dirname(CONFIG_FILE)
 
 @click.group(invoke_without_command=True)
 @click.pass_context
-def main(ctx):
+@click.option('--config', help='Configuration file location')
+def main(ctx, config):
     """List or play Twitch streams"""
+    if config is not None:
+        set_config_path(config)
+
+    load_config()
+
     if ctx.invoked_subcommand is None:
         cmd_live()
 
@@ -95,7 +106,7 @@ def cmd_auth(force):
 
     if token != '':
         config['oauth'] = token
-        save_config(config)
+        save_config()
         print('Authentication complete.')
     else:
         print('Authentication cancelled.')
