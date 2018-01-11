@@ -7,51 +7,9 @@ import json
 import click
 from urllib.parse import urlencode
 import webbrowser
-
-def get_config_dir():
-    if os.name == 'nt':
-        return os.path.join(os.environ['APPDATA'], 'twitch-cli')
-    elif os.name == 'posix':
-        home = os.environ.get('XDG_CONFIG_HOME', '~/.config')
-        return os.path.expanduser(os.path.join(home, 'twitch-cli'))
-
-# The configuration file is located at $HOME/.config/twitch-cli/config.json.
-CONFIG_DIR = get_config_dir()
-CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
+from config import *
 
 TWITCH_CLIENT_ID = 'e0fm2z7ufk73k2jnkm21y0gp1h9q2o'
-
-def save_config():
-    global config
-    with open(CONFIG_FILE, 'w') as f:
-        json.dump(config, f, sort_keys=True, indent=4)
-
-def load_config():
-    """Load the configuration file at ~/.config/twitch-cli/config.json and
-    return a dict with configuration options."""
-
-    global config
-
-    if not os.path.isdir(CONFIG_DIR):
-        os.makedirs(CONFIG_DIR)
-
-    if not os.path.isfile(CONFIG_FILE):
-        with open(CONFIG_FILE, 'a') as f:
-            f.write('{}')
-        print('Configuration file created at {}'.format(CONFIG_FILE))
-
-    with open(CONFIG_FILE, 'r') as f:
-        config = json.load(f)
-
-    config.setdefault('oauth', '')
-
-    save_config()
-
-def set_config_path(path):
-    global CONFIG_DIR
-    global CONFIG_FILE
-    CONFIG_FILE = path
-    CONFIG_DIR = os.path.dirname(CONFIG_FILE)
 
 @click.group(invoke_without_command=True)
 @click.pass_context
@@ -98,6 +56,7 @@ def cmd_unfollow(channel):
 @click.option('--force', '-f', help='Overwrite existing OAuth token')
 def cmd_auth(force):
     """Authenticate with Twitch"""
+    config = get_config()
     if (config['oauth'] != '') and (not force):
         print('You are already authenticated.')
         return
@@ -121,6 +80,7 @@ def play_stream(channel):
 
 def list_streams(game=None, flat=False):
     """Load the list of streams and prompt the user to chose one."""
+    config = get_config()
 
     if config['oauth'] == '':
         print('You have to provide a Twitch OAuth token to list followed '
@@ -156,6 +116,8 @@ def list_streams(game=None, flat=False):
     play_stream(streams[selection - 1]['channel']['name'])
 
 def get_followed_streams():
+    config = get_config()
+
     url = 'https://api.twitch.tv/kraken/streams/followed'
     headers = {
         'Accept': 'application/vnd.twitchtv.v5+json',
@@ -170,6 +132,8 @@ def get_followed_streams():
     return response['streams']
 
 def get_game_streams(game):
+    config = get_config()
+
     query = { 'game': game }
     url = 'https://api.twitch.tv/kraken/streams/?{}'.format(urlencode(query))
     headers = {
@@ -265,6 +229,8 @@ def authenticate():
     return token.strip()
 
 def twitchapi_request(url, method='get'):
+    config = get_config()
+
     url = 'https://api.twitch.tv/kraken/' + url
     headers = {
         'Accept': 'application/vnd.twitchtv.v5+json',
