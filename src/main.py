@@ -84,6 +84,12 @@ def play_url(url):
 
 def play_stream(channel):
     """Load a stream and open the player"""
+    
+    channel_id = get_channel_id(channel)
+
+    if channel_id is None:
+        print('The channel "{}" does not exist'.format(channel))
+        return
 
     play_url('twitch.tv/{}'.format(channel))
 
@@ -106,9 +112,11 @@ def list_streams(game=None, flat=False):
         print('Something went wrong while trying to fetch data from the '
               'Twitch API')
         sys.exit(1)
+    elif len(streams) == 0:
+        print('No streams online now')
+        return
 
-    print_stream_list(streams, title='Streams online now',
-                      flat=flat)
+    print_stream_list(streams, title='Streams online now', flat=flat)
 
     if not flat:
         selection = input('Stream ID: ')
@@ -119,7 +127,7 @@ def list_streams(game=None, flat=False):
     else:
         return
 
-    if selection > len(streams):
+    if not (0 < selection <= len(streams)):
         return
 
     play_stream(streams[selection - 1]['channel']['name'])
@@ -159,6 +167,13 @@ def get_game_streams(game):
 
 def list_vods(channel, flat):
     vods = get_channel_vods(channel)
+    
+    if vods is None:
+        return
+    elif len(vods) == 0:
+        print('No recent VODs for {}'.format(channel))
+        return
+
     print_vod_list(vods, title='{}\'s recent VODs'.format(channel))
     if not flat:
         selection = input('VOD ID: ')
@@ -167,9 +182,8 @@ def list_vods(channel, flat):
         except:
             return
 
-        if selection <= len(vods):
+        if (0 < selection <= len(vods)):
             play_url(vods[selection-1]['url'])
-            pass
 
 def get_channel_vods(channel):
     config = get_config()
