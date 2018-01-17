@@ -5,11 +5,22 @@ import requests
 import subprocess
 import json
 import click
+from termcolor import colored, COLORS
 from urllib.parse import urlencode
 import webbrowser
 from config import *
 
 TWITCH_CLIENT_ID = 'e0fm2z7ufk73k2jnkm21y0gp1h9q2o'
+COLORS.update({
+    'light_grey': 90,
+    'light_red': 91,
+    'light_green': 92,
+    'light_yellow': 93,
+    'light_blue': 94,
+    'light_magenta': 95,
+    'light_cyan': 96,
+    'light_white': 97
+})
 
 @click.group(invoke_without_command=True)
 @click.pass_context
@@ -215,10 +226,18 @@ def print_stream_list(streams, title=None, flat=False):
         format = '{1[channel][name]}'
     else:
         ind_len = len(str(len(streams)))
-        format = ('{0: >' + str(ind_len + 2) + 's} {1[channel][display_name]}: '
-                  '{1[channel][status]}\n' +
-                  (' ' * (ind_len + 3)) + '{1[channel][name]} playing '
-                  '{1[channel][game]} for {1[viewers]} viewers\n')
+        bullet          = '{0: >' + str(ind_len + 2) + 's}'
+        display_name    = '{1[channel][display_name]}'
+        status          = '{1[channel][status]}'
+        #channel_name    = '{1[channel][name]}'
+        game            = '{1[channel][game]}'
+        viewers         = '[{1[viewers]} viewers]'
+        format = (colored(bullet + ' ',         'light_red')
+                + colored(display_name + ': ',  'light_blue', attrs=['bold'])
+                + colored(game + ' ',           'light_yellow')
+                + colored(viewers + '\n',       'light_green')
+                + (' ' * (ind_len + 3))
+                + colored(status + '\n',        'light_grey'))
 
     i = 1
     for stream in streams:
@@ -234,9 +253,15 @@ def print_vod_list(vods, title=None, flat=False):
         format = '{1[url]}'
     else:
         ind_len = len(str(len(vods)))
-        format = ('{0: >' + str(ind_len + 2) + 's} {1[game]}: '
-                  '{1[title]}\n' +
-                  (' ' * (ind_len + 3)) + 'Recorded: {1[created_at]}\n')
+        bullet  = '{0: >' + str(ind_len + 2) + 's}'
+        game    = '{1[game]}'
+        title   = '{1[title]}'
+        date    = 'Recorded: {1[created_at]}'
+        format = (colored(bullet + ' ',     'light_red')
+                + colored(game + ': ',      'light_blue', attrs=['bold'])
+                + colored(title + '\n',     'light_yellow')
+                + (' ' * (ind_len + 3))
+                + colored(date + '\n',      'light_grey'))
 
         i = 1
         for vod in vods:
