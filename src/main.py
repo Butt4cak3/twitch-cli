@@ -9,6 +9,7 @@ from termcolor import colored, COLORS
 from urllib.parse import urlencode
 import webbrowser
 from config import *
+from errors import TwitchAPIError, TwitchAPIUnauthenticatedError
 
 TWITCH_CLIENT_ID = 'e0fm2z7ufk73k2jnkm21y0gp1h9q2o'
 COLORS.update({
@@ -95,7 +96,7 @@ def play_url(url):
 
 def play_stream(channel):
     """Load a stream and open the player"""
-    
+
     channel_id = get_channel_id(channel)
 
     if channel_id is None:
@@ -109,10 +110,7 @@ def list_streams(game=None, flat=False):
     config = get_config()
 
     if config['oauth'] == '':
-        print('You have to provide a Twitch OAuth token to list followed '
-              'streams.')
-        print('Run "{} auth" to authenticate.'.format(sys.argv[0]))
-        sys.exit(1)
+        raise TwitchAPIUnauthenticatedError()
 
     if game is not None:
         streams = get_game_streams(game)
@@ -120,9 +118,7 @@ def list_streams(game=None, flat=False):
         streams = get_followed_streams()
 
     if streams is None:
-        print('Something went wrong while trying to fetch data from the '
-              'Twitch API')
-        sys.exit(1)
+        raise TwitchAPIError()
     elif len(streams) == 0:
         print('No streams online now')
         return
@@ -155,7 +151,7 @@ def get_followed_streams():
     response = request.json()
 
     if 'streams' not in response:
-        return None
+        raise TwitchAPIError()
 
     return response['streams']
 
@@ -172,15 +168,15 @@ def get_game_streams(game):
     response = request.json()
 
     if 'streams' not in response:
-        return None
+        raise TwitchAPIError()
 
     return response['streams']
 
 def list_vods(channel, flat):
     vods = get_channel_vods(channel)
-    
+
     if vods is None:
-        return
+        raise TwitchAPIError()
     elif len(vods) == 0:
         print('No recent VODs for {}'.format(channel))
         return
@@ -213,7 +209,7 @@ def get_channel_vods(channel):
     response = request.json()
 
     if 'videos' not in response:
-        return None
+        raise TwitchAPIError()
 
     return response['videos']
 
@@ -354,4 +350,10 @@ def twitchapi_request(url, method='get'):
     return data
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except TwitchAPIUnauthenticatedError as e:
+        print('You have to provide a Twitch OAuth token to list followed streams.')
+        print('Run "{} auth" to authenticate.'.format(sys.argv[0]))
+    except TwitchAPIError as e:
+        print('Something went wrong while trying to fetch data from the Twitch API')
