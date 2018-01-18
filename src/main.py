@@ -23,10 +23,20 @@ COLORS.update({
     'light_white': 97
 })
 
+def main():
+    try:
+        cli()
+    except TwitchAPIUnauthenticatedError as e:
+        print('You have to provide a Twitch OAuth token to list followed streams.')
+        print('Run "{} auth" to authenticate.'.format(sys.argv[0]))
+    except TwitchAPIError as e:
+        print('Something went wrong while trying to fetch data from the Twitch API')
+
+
 @click.group(invoke_without_command=True)
 @click.pass_context
 @click.option('--config', help='Configuration file location')
-def main(ctx, config):
+def cli(ctx, config):
     """List or play Twitch streams"""
     if config is not None:
         set_config_path(config)
@@ -39,39 +49,39 @@ def main(ctx, config):
 # The cmd_* functions get called when their respective subcommand is executed
 # Example: "python3 twitch-cli live" calls "cmd_live"
 
-@main.command('live')
+@cli.command('live')
 @click.option('--flat', is_flag=True, help='Don\'t show detailed information or prompt')
 @click.option('--game', help='Show live streams for a specific game')
 def cmd_live(flat, game):
     """List live channels"""
     list_streams(game=game, flat=flat)
 
-@main.command('vods')
+@cli.command('vods')
 @click.option('--flat', is_flag=True, help='Don\'t show detailed information or prompt')
 @click.argument('channel')
 def cmd_vods(channel, flat):
     """List past streams of a channel"""
     list_vods(channel, flat)
 
-@main.command('play')
+@cli.command('play')
 @click.argument('channel')
 def cmd_play(channel):
     """Play a livestream"""
     play_stream(channel)
 
-@main.command('follow')
+@cli.command('follow')
 @click.argument('channel')
 def cmd_follow(channel):
     """Follow a channel"""
     follow_channel(channel)
 
-@main.command('unfollow')
+@cli.command('unfollow')
 @click.argument('channel')
 def cmd_unfollow(channel):
     """Unfollow a channel"""
     unfollow_channel(channel)
 
-@main.command('auth')
+@cli.command('auth')
 @click.option('--force', '-f', help='Overwrite existing OAuth token')
 def cmd_auth(force):
     """Authenticate with Twitch"""
@@ -350,10 +360,4 @@ def twitchapi_request(url, method='get'):
     return data
 
 if __name__ == '__main__':
-    try:
-        main()
-    except TwitchAPIUnauthenticatedError as e:
-        print('You have to provide a Twitch OAuth token to list followed streams.')
-        print('Run "{} auth" to authenticate.'.format(sys.argv[0]))
-    except TwitchAPIError as e:
-        print('Something went wrong while trying to fetch data from the Twitch API')
+    main()
