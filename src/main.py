@@ -103,12 +103,12 @@ def get_available_streams(url):
     return streams
 
 def play_url(url, quality=None):
-    if quality is None:
+    if quality is None or len(quality) == 0:
         config = get_config()
-        qualitiy = config['quality']
+        quality = config['quality']
 
     stream = 'best'
-    if len(quality) > 0:
+    if len(quality) > 0 and quality[0] not in ('best', 'worst'):
         streams = get_available_streams(url)
         for q in quality:
             if q in streams:
