@@ -41,22 +41,25 @@ def main(ctx, config):
 @main.command('live')
 @click.option('--flat', is_flag=True, help='Don\'t show detailed information or prompt')
 @click.option('--game', help='Show live streams for a specific game')
-def cmd_live(flat, game):
+@click.option('-q', '--quality', multiple=True, help='Stream quality')
+def cmd_live(flat, game, quality):
     """List live channels"""
-    list_streams(game=game, flat=flat)
+    list_streams(game=game, flat=flat, playback_quality=quality)
 
 @main.command('vods')
 @click.option('--flat', is_flag=True, help='Don\'t show detailed information or prompt')
 @click.argument('channel')
-def cmd_vods(channel, flat):
+@click.option('-q', '--quality', multiple=True, help='Stream quality')
+def cmd_vods(channel, flat, quality):
     """List past streams of a channel"""
-    list_vods(channel, flat)
+    list_vods(channel, flat, playback_quality=quality)
 
 @main.command('play')
+@click.option('-q', '--quality', multiple=True, help='Stream quality')
 @click.argument('channel')
-def cmd_play(channel):
+def cmd_play(channel, quality):
     """Play a livestream"""
-    play_stream(channel)
+    play_stream(channel, quality=quality)
 
 @main.command('follow')
 @click.argument('channel')
@@ -88,23 +91,46 @@ def cmd_auth(force):
     else:
         print('Authentication cancelled.')
 
-def play_url(url):
-    command = 'streamlink {} best'.format(url)
+def get_available_streams(url):
+    command = 'streamlink -j {}'.format(url)
+    process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+    output, error = process.communicate()
+    j_out = json.loads(output.decode())
+    streams = []
+    for stream in j_out['streams']:
+        streams.append(stream)
+
+    return streams
+
+def play_url(url, quality=None):
+    if quality is None:
+        config = get_config()
+        qualitiy = config['quality']
+
+    stream = 'best'
+    if len(quality) > 0:
+        streams = get_available_streams(url)
+        for q in quality:
+            if q in streams:
+                stream = q
+                break
+
+    command = 'streamlink {} {}'.format(url, stream)
     process = subprocess.Popen(command.split(), stdout=None, stderr=None)
     output, error = process.communicate()
 
-def play_stream(channel):
+def play_stream(channel, quality=None):
     """Load a stream and open the player"""
-    
+
     channel_id = get_channel_id(channel)
 
     if channel_id is None:
         print('The channel "{}" does not exist'.format(channel))
         return
 
-    play_url('twitch.tv/{}'.format(channel))
+    play_url('twitch.tv/{}'.format(channel), quality=quality)
 
-def list_streams(game=None, flat=False):
+def list_streams(game=None, flat=False, playback_quality=None):
     """Load the list of streams and prompt the user to chose one."""
     config = get_config()
 
@@ -141,7 +167,7 @@ def list_streams(game=None, flat=False):
     if not (0 < selection <= len(streams)):
         return
 
-    play_stream(streams[selection - 1]['channel']['name'])
+    play_stream(streams[selection - 1]['channel']['name'], quality=playback_quality)
 
 def get_followed_streams():
     config = get_config()
@@ -176,9 +202,9 @@ def get_game_streams(game):
 
     return response['streams']
 
-def list_vods(channel, flat):
+def list_vods(channel, flat, playback_quality=None):
     vods = get_channel_vods(channel)
-    
+
     if vods is None:
         return
     elif len(vods) == 0:
@@ -194,7 +220,7 @@ def list_vods(channel, flat):
             return
 
         if (0 < selection <= len(vods)):
-            play_url(vods[selection-1]['url'])
+            play_url(vods[selection-1]['url'], quality=playback_quality)
 
 def get_channel_vods(channel):
     config = get_config()
