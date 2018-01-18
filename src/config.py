@@ -32,7 +32,6 @@ def load_config():
             config = json.load(f)
 
     config.setdefault('oauth', '')
-    config.setdefault('quality', [])
 
     save_config()
 

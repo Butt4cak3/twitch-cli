@@ -41,7 +41,7 @@ def main(ctx, config):
 @main.command('live')
 @click.option('--flat', is_flag=True, help='Don\'t show detailed information or prompt')
 @click.option('--game', help='Show live streams for a specific game')
-@click.option('-q', '--quality', multiple=True, help='Stream quality')
+@click.option('-q', '--quality', help='Comma-separated stream qualities')
 def cmd_live(flat, game, quality):
     """List live channels"""
     list_streams(game=game, flat=flat, playback_quality=quality)
@@ -49,13 +49,13 @@ def cmd_live(flat, game, quality):
 @main.command('vods')
 @click.option('--flat', is_flag=True, help='Don\'t show detailed information or prompt')
 @click.argument('channel')
-@click.option('-q', '--quality', multiple=True, help='Stream quality')
+@click.option('-q', '--quality', help='Comma-separated stream qualities')
 def cmd_vods(channel, flat, quality):
     """List past streams of a channel"""
     list_vods(channel, flat, playback_quality=quality)
 
 @main.command('play')
-@click.option('-q', '--quality', multiple=True, help='Stream quality')
+@click.option('-q', '--quality', help='Comma-separated stream qualities')
 @click.argument('channel')
 def cmd_play(channel, quality):
     """Play a livestream"""
@@ -103,19 +103,10 @@ def get_available_streams(url):
     return streams
 
 def play_url(url, quality=None):
-    if quality is None or len(quality) == 0:
-        config = get_config()
-        quality = config['quality']
+    if quality is None:
+        quality = ''
 
-    stream = 'best'
-    if len(quality) > 0 and quality[0] not in ('best', 'worst'):
-        streams = get_available_streams(url)
-        for q in quality:
-            if q in streams:
-                stream = q
-                break
-
-    command = 'streamlink {} {}'.format(url, stream)
+    command = 'streamlink {} {}'.format(url, quality)
     process = subprocess.Popen(command.split(), stdout=None, stderr=None)
     output, error = process.communicate()
 
