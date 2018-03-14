@@ -74,7 +74,7 @@ def cmd_unfollow(channel):
     unfollow_channel(channel)
 
 @main.command('auth')
-@click.option('--force', '-f', help='Overwrite existing OAuth token')
+@click.option('--force', '-f', is_flag=True, help='Overwrite existing OAuth token')
 def cmd_auth(force):
     """Authenticate with Twitch"""
     config = get_config()
